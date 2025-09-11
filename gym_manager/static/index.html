@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sport Zal Menejeri</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <h1>Sport Zal Menejeri bilan Chat</h1>
+    <div id="chat"></div>
+    <input type="text" id="input" placeholder="Savolingizni kiriting...">
+    <button onclick="sendMessage()">Yuborish</button>
+    <div id="payment-section" style="display: none; margin-top: 10px;">
+        <input type="text" id="payment-code" placeholder="Tasdiqlash kodini kiriting...">
+        <button onclick="verifyPayment()">Tasdiqlash</button>
+    </div>
+    <script>
+        const chat = document.getElementById('chat');
+        const input = document.getElementById('input');
+        const paymentSection = document.getElementById('payment-section');
+        const paymentCode = document.getElementById('payment-code');
+
+        async function sendMessage() {
+            const question = input.value.trim();
+            if (!question) return;
+
+            // Mijoz xabarini ko'rsatish
+            chat.innerHTML += `<p><strong>Siz:</strong> ${question}</p>`;
+            input.value = '';
+
+            try {
+                const response = await fetch('/api/gym-manager', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question })
+                });
+                const data = await response.json();
+                const reply = data.response;
+
+                // Menejer javobini ko'rsatish
+                chat.innerHTML += `<p><strong>Menejer:</strong> ${reply}</p>`;
+                chat.scrollTop = chat.scrollHeight;
+
+                // Agar javobda tasdiqlash kodi bo'lsa, input maydonini ko'rsatish
+                if (reply.includes("To'lov tasdiqlash kodi")) {
+                    paymentSection.style.display = 'block';
+                }
+            } catch (error) {
+                chat.innerHTML += `<p><strong>Xato:</strong> ${error.message}</p>`;
+            }
+        }
+
+        async function verifyPayment() {
+            const code = paymentCode.value.trim();
+            if (!code) return;
+
+            // Kodni yuborish
+            chat.innerHTML += `<p><strong>Siz:</strong> ${code}</p>`;
+            paymentCode.value = '';
+
+            try {
+                const response = await fetch('/api/gym-manager', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: code })
+                });
+                const data = await response.json();
+                chat.innerHTML += `<p><strong>Menejer:</strong> ${data.response}</p>`;
+                chat.scrollTop = chat.scrollHeight;
+
+                // Tasdiqlashdan so'ng input maydonini yashirish
+                if (data.response.includes("To'lov tasdiqlandi")) {
+                    paymentSection.style.display = 'none';
+                }
+            } catch (error) {
+                chat.innerHTML += `<p><strong>Xato:</strong> ${error.message}</p>`;
+            }
+        }
+
+        // Enter tugmasi bilan xabar yuborish
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        // Enter tugmasi bilan tasdiqlash kodi yuborish
+        paymentCode.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') verifyPayment();
+        });
+    </script>
+</body>
+</html>
